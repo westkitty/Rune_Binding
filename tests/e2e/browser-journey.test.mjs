@@ -47,7 +47,7 @@ test('browser_case_journey_and_restart_persists_human_review', {timeout:45000}, 
  await browser.evalJs(`(()=>{[...document.querySelectorAll('.workspace-nav button')].find(x=>x.textContent==='Casefile').click();return true})()`);
  await waitFor(()=>browser.evalJs(`document.querySelector('[aria-label="Casefile export and restoration"]')!==null`));
  await browser.evalJs(`(()=>{document.querySelector('[aria-label="Casefile export and restoration"] form').requestSubmit();return true})()`);
- await waitFor(()=>browser.evalJs(`document.querySelectorAll('.exports button').length===3`));
+ await waitFor(()=>browser.evalJs(`document.querySelectorAll('.exports button').length===4`));
  const shown=await browser.evalJs(`document.querySelector('.export-preview')?.textContent`);assert.match(shown,/No inspected historical witness/);
  await browser.cmd('Page.reload',{ignoreCache:true});await waitFor(()=>browser.evalJs(`document.querySelector('.case-shelf .case-entry')!==null`));
  await browser.evalJs(`(()=>{document.querySelector('.case-shelf .case-entry').click();return true})()`);
