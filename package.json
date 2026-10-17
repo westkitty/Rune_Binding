@@ -1,0 +1,17 @@
+{
+  "name": "rune-binding-evidence-kernel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first rune evidence casefile workbench",
+  "scripts": {
+    "dev": "npm run build && node scripts/serve.mjs",
+    "build": "tsc -p tsconfig.json && node scripts/copy-static.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "npm run build && node --test tests/unit/*.test.mjs tests/integration/*.test.mjs",
+    "test:e2e": "npm run build && node --test tests/e2e/*.test.mjs",
+    "test:perf": "npm run build && node --test tests/perf/*.test.mjs",
+    "test": "npm run typecheck && npm run test:unit && npm run test:e2e && npm run test:perf"
+  },
+  "engines": { "node": ">=22.0.0" }
+}
