@@ -4,13 +4,14 @@ export function AnnotationDesk({asset,regions,onChange,imageUrl,itemId}:{asset:A
  const section=document.createElement('section');section.className='pane';section.setAttribute('aria-label','Image annotation');
  const h=document.createElement('h3');h.textContent='Region annotation';section.append(h);
  if(!asset){const p=document.createElement('p');p.textContent='Import a local image before placing a region.';section.append(p);return section}
+ const chosenAsset=asset;
  if(!imageUrl){const p=document.createElement('p');p.textContent='Original image bytes are unavailable on this device. Annotation is blocked until they are restored.';p.className='notice warning';section.append(p);return section}
  const stage=document.createElement('div');stage.className='image-stage';stage.setAttribute('aria-label','Original image region selection');
  const img=document.createElement('img');img.src=imageUrl;img.alt='Imported research image; mark a region below';img.draggable=false;img.style.width='100%';img.style.display='block';img.style.userSelect='none';stage.append(img);
  const overlay=document.createElement('div');overlay.className='region-overlay';stage.append(overlay);
  const zoomRow=document.createElement('label');zoomRow.textContent='Zoom ';const zoom=document.createElement('input');zoom.type='range';zoom.min='1';zoom.max='3';zoom.step='.25';zoom.value='1';zoom.setAttribute('aria-label','Image zoom');zoomRow.append(zoom);section.append(zoomRow);
  let start:NormalizedPoint|null=null;
- function add(a:NormalizedPoint,b:NormalizedPoint){try{const r=normalizeRegion(a,b,asset.sha256,{width:asset.width,height:asset.height},asset.orientation);r.itemId=itemId;onChange(r)}catch(e){message.textContent=String(e)}}
+ function add(a:NormalizedPoint,b:NormalizedPoint){try{const r=normalizeRegion(a,b,chosenAsset.sha256,{width:chosenAsset.width,height:chosenAsset.height},chosenAsset.orientation);r.itemId=itemId;onChange(r)}catch(e){message.textContent=String(e)}}
  function point(e:PointerEvent){const rect=img.getBoundingClientRect();return screenToNormalizedPoint(e.clientX,e.clientY,{left:rect.left,top:rect.top,displayWidth:rect.width/Number(zoom.value),displayHeight:rect.height/Number(zoom.value),zoom:Number(zoom.value),panX:0,panY:0})}
  stage.addEventListener('pointerdown',e=>{if(e.button!==0)return;start=point(e);stage.setPointerCapture(e.pointerId)});
  stage.addEventListener('pointerup',e=>{if(!start)return;const end=point(e);add(start,end);start=null;if(stage.hasPointerCapture(e.pointerId))stage.releasePointerCapture(e.pointerId)});
