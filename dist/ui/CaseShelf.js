@@ -1,0 +1,75 @@
+export function CaseShelf({ cases, active, health, onCreate, onOpen, onPersist }) {
+    const root = document.createElement('section');
+    root.className = 'case-shelf';
+    root.setAttribute('aria-label', 'Local case shelf');
+    const intro = document.createElement('div');
+    intro.className = 'case-intro';
+    const eyebrow = document.createElement('span');
+    eyebrow.className = 'eyebrow';
+    eyebrow.textContent = 'PERSONAL EVIDENCE ATLAS';
+    const heading = document.createElement('h2');
+    heading.textContent = 'Case shelf';
+    const p = document.createElement('p');
+    p.textContent = 'Investigate one image and one claim at a time. Keep the history of what the evidence does—and does not—establish.';
+    intro.append(eyebrow, heading, p);
+    root.append(intro);
+    const strip = document.createElement('div');
+    strip.className = 'stat-row';
+    for (const [name, val] of [['Local investigations', cases.length], ['Source records', active?.sources.length || 0], ['Claims', active?.claims.length || 0], ['Human reviews', active?.reviewEvents.length || 0]]) {
+        const box = document.createElement('div');
+        box.className = 'stat';
+        const n = document.createElement('strong');
+        n.textContent = String(val);
+        const label = document.createElement('span');
+        label.textContent = name;
+        box.append(n, label);
+        strip.append(box);
+    }
+    root.append(strip);
+    const notice = document.createElement('p');
+    notice.className = 'notice ' + (health.mode === 'EPHEMERAL' ? 'warning' : '');
+    notice.setAttribute('role', 'status');
+    notice.textContent = health.warning;
+    root.append(notice);
+    if (health.mode === 'PERSISTENT' && health.persisted !== true) {
+        const p = document.createElement('button');
+        p.type = 'button';
+        p.className = 'persist-button';
+        p.textContent = 'Request persistent storage';
+        p.addEventListener('click', () => { void onPersist(); });
+        root.append(p);
+    }
+    const group = document.createElement('div');
+    group.className = 'panel-grid';
+    const make = document.createElement('form');
+    make.className = 'pane';
+    make.innerHTML = '<h3>New investigation</h3><label>Working title<input name="title" required maxlength="300" placeholder="e.g. Alleged Viking protection sign"></label><button type="submit">Create case</button><p role="status" class="form-status"></p>';
+    make.addEventListener('submit', async (e) => { e.preventDefault(); try {
+        await onCreate(String(new FormData(make).get('title') || ''));
+    }
+    catch (err) {
+        make.querySelector('[role="status"]').textContent = String(err);
+    } });
+    group.append(make);
+    const recent = document.createElement('section');
+    recent.className = 'pane';
+    const h = document.createElement('h3');
+    h.textContent = 'Saved locally';
+    recent.append(h);
+    if (!cases.length) {
+        const p = document.createElement('p');
+        p.textContent = 'No cases on this browser yet.';
+        recent.append(p);
+    }
+    for (const c of cases) {
+        const b = document.createElement('button');
+        b.className = 'case-entry';
+        b.type = 'button';
+        b.textContent = c.title + ' · revision ' + c.revision + (c.id === active?.case.id ? ' · open' : '');
+        b.addEventListener('click', () => { void onOpen(c.id); });
+        recent.append(b);
+    }
+    group.append(recent);
+    root.append(group);
+    return root;
+}

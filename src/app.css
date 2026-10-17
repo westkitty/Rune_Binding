@@ -31,3 +31,5 @@ input[type=checkbox]{width:18px;height:18px;display:inline-block;vertical-align:
 @media(max-width:900px){.panel-grid,.review-layout{grid-template-columns:1fr}.stat-row{grid-template-columns:repeat(2,minmax(0,1fr))}.region-numeric{grid-template-columns:repeat(2,minmax(0,1fr))}.region-numeric button{grid-column:1/-1}.rights-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.masthead{padding:12px 14px}.mark{font-size:27px;padding:8px 12px}h1{font-size:19px}.header-status{font-size:10px;padding:6px 8px}.workspace-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-bottom:13px}.workspace-nav button{font-size:12px;padding:9px 11px}.two,.rights-grid{grid-template-columns:1fr}.stat{padding:13px}.stat strong{font-size:24px}.pane{padding:16px}.case-intro{padding-top:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+.date-fields{border:1px solid #536262;border-radius:8px;padding:9px 14px 14px;margin-top:14px;min-width:0}.date-fields legend{color:#e5cca0;font-size:13px;font-weight:650;padding:0 6px}

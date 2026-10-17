@@ -1,0 +1,12 @@
+import {writeFile, mkdir} from 'node:fs/promises';
+import {runBenchmarks} from '../tests/perf/runner.mjs';
+const r=await runBenchmarks();
+if(r.search.p95Ms>=r.targets.indexedSearchP95Ms||r.compiler.p95Ms>=r.targets.compilerP95Ms)throw Error('Node proxy performance target exceeded');
+const format=x=>Number(x.toFixed(6));
+for(const item of [r.search,r.compiler])for(const k of ['minMs','p50Ms','p95Ms','maxMs'])item[k]=format(item[k]);
+const receipt={...r,measuredAt:new Date().toISOString(),claims:{nodeProxyTargetsPassed:true,browserPerformance:'UNVERIFIED',actualIndexedDbLookup:'UNVERIFIED',actualMobileLayout:'UNVERIFIED'}};
+await mkdir('tests/perf/results',{recursive:true});
+await writeFile('tests/perf/results/node-proxy-latest.json',JSON.stringify(receipt,null,2)+'\n');
+console.log('Node proxy benchmark receipt written; BROWSER PERFORMANCE NOT VERIFIED');
+console.log('Indexed Map p95 '+r.search.p95Ms+' ms / '+r.search.samples+' probes');
+console.log('100-claim compiler p95 '+r.compiler.p95Ms+' ms / '+r.compiler.samples+' builds');

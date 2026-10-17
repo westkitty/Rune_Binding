@@ -1,0 +1,40 @@
+{
+  "runtime": {
+    "kind": "NODE_PROXY",
+    "browserVerified": false,
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuCount": 5,
+    "caseGeneration": "SYNTHETIC_NO_HISTORICAL_EVIDENCE"
+  },
+  "targets": {
+    "indexedSearchP95Ms": 250,
+    "compilerP95Ms": 2000
+  },
+  "search": {
+    "records": 10000,
+    "samples": 2000,
+    "minMs": 0.000188,
+    "p50Ms": 0.000268,
+    "p95Ms": 0.00052,
+    "maxMs": 0.028327
+  },
+  "compiler": {
+    "claimCount": 100,
+    "samples": 20,
+    "minMs": 2.098111,
+    "p50Ms": 3.035152,
+    "p95Ms": 6.317785,
+    "maxMs": 14.797749
+  },
+  "fixtureHash": "22fa7e564d07d3fee1fc2cc24cef735959cbd2b15aa9d0f4796cc1b295a79070",
+  "outputHash": "22fa7e564d07d3fee1fc2cc24cef735959cbd2b15aa9d0f4796cc1b295a79070",
+  "measuredAt": "2026-10-17T06:52:34.903Z",
+  "claims": {
+    "nodeProxyTargetsPassed": true,
+    "browserPerformance": "UNVERIFIED",
+    "actualIndexedDbLookup": "UNVERIFIED",
+    "actualMobileLayout": "UNVERIFIED"
+  }
+}
