@@ -39,7 +39,7 @@ The source project intentionally uses no runtime npm packages. `npm run build` i
 
 - **K1 is a foundation, not a finished historical research service.** Automated archive search, exact manuscript catalogue matching, script-period classification, reversible transliteration, and proven historical identifications are future milestones.
 - The app does not fetch outside URLs automatically. A citation to a publication means you recorded its metadata, not that the application verified it.
-- The browser sandbox used during this release refused localhost and `file://` navigation, so real-browser IndexedDB, touch/mobile, and offline-reload behavior are **unverified** here. Unit and static tests are not substitutes for those checks. See [K1 acceptance](docs/superpowers/K1-acceptance.md).
+- The original Linux sandbox could not run Chromium locally. An independent MacBook Chrome run now passes the browser case/reload and mobile viewport tests; offline network-disconnect recovery, touch drawing, and full keyboard navigation are still not certified. See [K1 acceptance](docs/superpowers/K1-acceptance.md) for the earlier acceptance snapshot.
 - No user-supplied reference images or private investigation records are packaged in the repository. Fixture material is clearly synthetic.
 
 ## Integrity and provenance
@@ -48,15 +48,13 @@ The three governing specifications are preserved in `docs/` with the exact SHA-2
 
 See `OPERATIONAL_STATE.md` for verified project status and remaining browser validation requirements, and `tests/perf/results/node-proxy-latest.json` for the actual **Node proxy**, not browser, benchmark receipt.
 
-## Public GitHub publication
+## Public GitHub repository and Pages
 
-The repository is ready to publish to the explicit public target `westkitty/Rune_Binding`. From a clean local `main` checkout with an authenticated GitHub CLI, run:
-
-```bash
-sh scripts/publish-public.sh
-```
-
-The script refuses a dirty tree, unexpected remote, unauthenticated GitHub CLI, or a private destination. It creates the public repository if authorized, pushes without rewriting history, and compares remote and local commit SHAs before claiming success. A GitHub Actions workflow runs the test suite against Node 22 and a pinned TypeScript compiler. The workflow and remote build are **unverified until the repository exists and Actions actually runs**.
+- Source: https://github.com/westkitty/Rune_Binding (public `main`)
+- Live workbench: https://westkitty.github.io/Rune_Binding/
+- GitHub Pages runs `.github/workflows/pages.yml` (Node 22, pinned TypeScript 5.8.3, full tests including Chrome and static build). Pushes to `main` deploy through GitHub Actions; the first successful deployment run is [39016342453](https://github.com/westkitty/Rune_Binding/actions/runs/39016342453).
+- `scripts/publish-public.sh` remains as a guarded CLI route for correctly authenticated copies. It refuses an unexpected remote or private target and compares the remote and local main SHAs.
+- Confirm a new deployment on GitHub Actions and by requesting the actual site before claiming an update is live.
 
 ## Development and quality
 
@@ -71,4 +69,4 @@ No accounts, analytics, hosted databases, mandatory remote providers, or automat
 
 ---
 
-**Status:** K1 implementation with verified code-level checks; browser/device release acceptance remains conditional. Historical assertions require independent scholarship and human judgment.
+**Status:** Public Pages deployed with verified browser case persistence and mobile viewport checks; full offline and real-device acceptance remain conditional. Historical assertions require independent scholarship and human judgment.
