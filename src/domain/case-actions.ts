@@ -13,3 +13,13 @@ export function addWitness(bundle:CaseBundle,input:WitnessInput):CaseBundle{
 export function attachEvidence(bundle:CaseBundle,input:EvidenceLinkInput):CaseBundle{
  const b=next(bundle);b.evidenceLinks.push({...input,id:newEntityId()});return validateCaseBundle(b);
 }
+
+import type {ClaimInput,ReadingAlternativeInput,SearchReceiptInput} from './schema.js';
+export function addClaim(bundle:CaseBundle,input:ClaimInput):CaseBundle{
+ if(!input.statement?.trim())throw Error('Claim text required');const b=next(bundle);
+ b.claims.push({...input,statement:input.statement.trim(),id:newEntityId(),displayId:nextDisplayId(b,'CLM'),reviewStatus:'DRAFT',verdict:'UNVERIFIED',provenance:'PU'});return validateCaseBundle(b);
+}
+export function addReadingAlternative(bundle:CaseBundle,input:ReadingAlternativeInput):CaseBundle{
+ if(!input.literal.trim())throw Error('Literal reading required');const b=next(bundle);
+ b.readingAlternatives.push({...input,id:newEntityId()});return validateCaseBundle(b);
+}

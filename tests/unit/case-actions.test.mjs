@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createBlankCase} from '../../dist/domain/schema.js';
+import {addClaim,addReadingAlternative,addSource,attachEvidence} from '../../dist/domain/case-actions.js';
+function one(){const b=createBlankCase('A');b.items.push({id:'i1',displayId:'ITEM-001',label:'One',regionIds:[]});return b}
+test('two_claims_one_item_separate_verdicts',()=>{let c=one();c=addClaim(c,{itemId:'i1',dimension:'FORM',statement:'crossed lines'});c=addClaim(c,{itemId:'i1',dimension:'PURPOSE',statement:'supposedly protective',modernIntent:true});assert.equal(c.claims.length,2);assert.notEqual(c.claims[0].id,c.claims[1].id);assert.equal(c.claims[1].verdict,'UNVERIFIED')});
+test('source_link_without_folio_does_not_become_pinpoint_citation',()=>{let b=one();b=addClaim(b,{itemId:'i1',dimension:'FORM',statement:'line'});b=addSource(b,{title:'Website',sourceInspection:'NOT_ACCESSED'});b=attachEvidence(b,{claimId:b.claims[0].id,sourceId:b.sources[0].id,relation:'CONTEXT'});assert.equal(b.evidenceLinks[0].locator,undefined)});
+test('manual_transliteration_does_not_claim_round_trip_verified',()=>{let b=one();b=addClaim(b,{itemId:'i1',dimension:'READING',statement:'literal letters'});b=addReadingAlternative(b,{claimId:b.claims[0].id,kind:'TRANSLITERATION',literal:'ᚱᚢ',notes:'Manual; unverified'});assert.equal(b.readingAlternatives[0].kind,'TRANSLITERATION');assert.equal(b.claims[0].verdict,'UNVERIFIED')});
+test('a_modern_intent_is_not_ancient_purpose',()=>{let b=one();b=addClaim(b,{itemId:'i1',dimension:'PURPOSE',statement:'modern intention: safety',modernIntent:true});assert.equal(b.claims[0].modernIntent,true);assert.equal(b.claims[0].provenance,'PU')});
