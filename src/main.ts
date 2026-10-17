@@ -1,5 +1,2 @@
-const button = document.getElementById('create-case');
-button?.addEventListener('click', () => {
-  const region = document.getElementById('app');
-  if (region) region.textContent = 'Case creation will be available with local evidence storage.';
-});
+import {startApp} from './app.js';
+startApp().catch(err=>{const root=document.getElementById('app');if(root){root.textContent='Unable to open the evidence workbench: '+String(err);root.setAttribute('role','alert')}});
