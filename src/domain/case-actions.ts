@@ -23,3 +23,9 @@ export function addReadingAlternative(bundle:CaseBundle,input:ReadingAlternative
  if(!input.literal.trim())throw Error('Literal reading required');const b=next(bundle);
  b.readingAlternatives.push({...input,id:newEntityId()});return validateCaseBundle(b);
 }
+export function addSearchReceipt(bundle:CaseBundle,input:SearchReceiptInput):CaseBundle{
+ if(!input.corpus?.trim()||!input.query?.trim()||!input.coverageNotes?.trim())throw Error('Search corpus, exact query and coverage limitations required');
+ if(input.executionMode!=='USER_REPORTED')throw Error('Tool-verified searches require an actual verified search adapter, unavailable in K1');
+ if(!['NO_MATCH_IN_SCOPE','MATCH_FOUND','NOT_SEARCHED','UNAVAILABLE'].includes(input.outcome))throw Error('Invalid bounded search outcome');
+ const b=next(bundle);b.searchReceipts.push({...input,id:newEntityId()});return validateCaseBundle(b);
+}
