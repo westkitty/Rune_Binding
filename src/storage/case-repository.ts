@@ -5,7 +5,7 @@ export type StorageHealth={available:boolean;mode:'PERSISTENT'|'EPHEMERAL'|'UNAV
 export interface CaseRepository{
  listCases():Promise<CaseHeader[]>;
  getCase(caseId:string):Promise<CaseBundle|null>;
- createCase(bundle:CaseBundle):Promise<void>;
+ createCase(bundle:CaseBundle,media?:MediaPayload[]):Promise<void>;
  mutateCase(caseId:string,expectedRevision:number,mutationId:string,update:(current:CaseBundle)=>CaseBundle,media?:MediaPayload[]):Promise<CaseBundle>;
  getMedia(sha256:string):Promise<Uint8Array|null>;
  storageHealth():Promise<StorageHealth>;
@@ -26,7 +26,7 @@ export class MemoryCaseRepository implements CaseRepository{
  cases=new Map<string,CaseBundle>();media=new Map<string,Uint8Array>();operations=new Map<string,string>();
  async listCases(){return [...this.cases.values()].map(v=>structuredClone(v.case)).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt))}
  async getCase(id:string){const r=this.cases.get(id);return r?structuredClone(r):null}
- async createCase(bundle:CaseBundle){validateCaseBundle(bundle);if(this.cases.has(bundle.case.id))throw new ConflictError('Existing case ID');this.cases.set(bundle.case.id,structuredClone(bundle))}
+ async createCase(bundle:CaseBundle,media:MediaPayload[]=[]){validateCaseBundle(bundle);validateMedia(media);if(this.cases.has(bundle.case.id))throw new ConflictError('Existing case ID');this.cases.set(bundle.case.id,structuredClone(bundle));for(const m of media)this.media.set(m.sha256,new Uint8Array(m.bytes))}
  async mutateCase(id:string,revision:number,mutationId:string,update:(c:CaseBundle)=>CaseBundle,media:MediaPayload[]=[]){
   if(!mutationId||mutationId.length>200)throw Error('Mutation ID required');const key=id+'|'+mutationId;const existing=this.cases.get(id);if(!existing)throw new ConflictError('Missing case');
   if(this.operations.has(key))return structuredClone(existing);
