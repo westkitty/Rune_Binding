@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {MemoryCaseRepository, ConflictError} from '../../dist/storage/case-repository.js';
+import {createBlankCase} from '../../dist/domain/schema.js';
+
+test('stale_revision_rejected',async()=>{const r=new MemoryCaseRepository();const c=createBlankCase('A');await r.createCase(c);await r.mutateCase(c.case.id,0,'mutation-1',x=>({...x,case:{...x.case,title:'B'}}));await assert.rejects(()=>r.mutateCase(c.case.id,0,'mutation-2',x=>x),ConflictError)});
+test('same_mutation_id_replay_does_not_duplicate_records',async()=>{const r=new MemoryCaseRepository(),c=createBlankCase('A');await r.createCase(c);await r.mutateCase(c.case.id,0,'id-1',x=>({...x,items:[...x.items,{id:'i1',displayId:'ITEM-001',label:'Mark',regionIds:[]}]}));const result=await r.mutateCase(c.case.id,0,'id-1',x=>({...x,items:[]}));assert.equal(result.case.revision,1);assert.equal(result.items.length,1)});
+test('transaction_abort_retains_prior_revision_and_review_history',async()=>{const r=new MemoryCaseRepository(),c=createBlankCase('A');await r.createCase(c);await assert.rejects(()=>r.mutateCase(c.case.id,0,'bad-1',x=>({...x,items:[{id:'i1',displayId:'ITEM-001',label:'X',regionIds:[]}]}),[{sha256:'invalid',bytes:new Uint8Array([1])}]));const prev=await r.getCase(c.case.id);assert.equal(prev.case.revision,0);assert.equal(prev.items.length,0);assert.equal(prev.reviewEvents.length,0)});
+test('media_digest_dedupe',async()=>{const r=new MemoryCaseRepository(),c=createBlankCase('A');await r.createCase(c);const m={sha256:'a'.repeat(64),bytes:new Uint8Array([9,8])};await r.mutateCase(c.case.id,0,'m1',x=>x,[m]);await r.mutateCase(c.case.id,1,'m2',x=>x,[m]);assert.deepEqual(await r.getMedia(m.sha256),m.bytes);assert.equal(r.media.size,1)});
+test('reopen_preserves_committed_case',async()=>{const r=new MemoryCaseRepository(),c=createBlankCase('A');await r.createCase(c);const out=await r.mutateCase(c.case.id,0,'m1',x=>({...x,case:{...x.case,title:'Reopen'}}));assert.equal((await r.getCase(c.case.id)).case.revision,out.case.revision)});
