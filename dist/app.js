@@ -12,11 +12,15 @@ import { AnnotationDesk } from './ui/AnnotationDesk.js';
 import { ClaimLedger } from './ui/ClaimLedger.js';
 import { ReviewDesk } from './ui/ReviewDesk.js';
 import { CasefileDesk } from './ui/CasefileDesk.js';
+import { canUseAsset, changeImageViewRight } from './domain/rights.js';
+import { chooseAnnotationAsset, findImageItem } from './domain/image-selection.js';
+import { resolveImageUrl } from './ui/image-access.js';
 const root = document.getElementById('app');
 let repo, active = null;
 let health = { available: false, mode: 'UNAVAILABLE', usage: null, quota: null, persisted: null, warning: 'Storage initializing' };
 let view = 'shelf';
 let notice = '';
+let selectedImageId = null;
 const objectUrls = new Map();
 function label(text, tag = 'span', className = '') { const e = document.createElement(tag); e.textContent = text; if (className)
     e.className = className; return e; }
@@ -35,9 +39,9 @@ catch {
     notice = 'Persistent storage API unavailable. Export casefiles for backup.';
 } await render(); }
 async function navigate(page) { view = page; await render(); }
-async function createCase(title) { const b = createBlankCase(title); await repo.createCase(b); active = b; view = 'claims'; notice = 'Case created locally. Start by recording a source or item.'; await render(); }
+async function createCase(title) { const b = createBlankCase(title); await repo.createCase(b); active = b; selectedImageId = null; view = 'claims'; notice = 'Case created locally. Start by recording a source or item.'; await render(); }
 async function openCase(id) { const b = await repo.getCase(id); if (!b)
-    throw Error('Case not found'); active = b; view = 'claims'; notice = 'Opened case ' + b.case.title; await render(); }
+    throw Error('Case not found'); active = b; selectedImageId = null; view = 'claims'; notice = 'Opened case ' + b.case.title; await render(); }
 async function save(update, media = []) {
     if (!active)
         throw Error('No active case');
@@ -71,10 +75,7 @@ function nav() { const n = document.createElement('nav'); n.className = 'workspa
     b.addEventListener('click', () => { void navigate(key); });
     n.append(b);
 } return n; }
-async function getImageUrl(asset) { if (objectUrls.has(asset.sha256))
-    return objectUrls.get(asset.sha256); if (asset.rights.view === 'DENY')
-    return undefined; const bytes = await repo.getMedia(asset.sha256); if (!bytes)
-    return undefined; const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: asset.mime })); objectUrls.set(asset.sha256, url); return url; }
+async function getImageUrl(asset) { return resolveImageUrl(asset, digest => repo.getMedia(digest), objectUrls); }
 async function annotationPanel(bundle) {
     const box = document.createElement('div');
     box.className = 'annotation-layout';
@@ -85,13 +86,37 @@ async function annotationPanel(bundle) {
         box.append(label('Import a raster image on the Sources tab.', 'p', 'notice'));
         return box;
     }
-    const a = bundle.assets[0];
-    const item = bundle.items.find(x => x.assetId === a.id);
+    const a = chooseAnnotationAsset(bundle.assets, selectedImageId);
+    selectedImageId = a.id;
+    if (bundle.assets.length > 1) {
+        const picker = document.createElement('label');
+        picker.textContent = 'Choose image to annotate';
+        const select = document.createElement('select');
+        select.setAttribute('aria-label', 'Choose source image');
+        for (const asset of bundle.assets) {
+            const option = document.createElement('option');
+            option.value = asset.id;
+            option.textContent = asset.displayId + ' · ' + asset.filename;
+            select.append(option);
+        }
+        select.value = a.id;
+        select.addEventListener('change', () => { selectedImageId = select.value; void render(); });
+        picker.append(select);
+        box.append(picker);
+    }
+    const item = findImageItem(bundle, a);
+    if (!canUseAsset(a.rights, 'VIEW').allowed) {
+        box.append(label('Local viewing was not authorized when this image was imported. Change its viewing permission under Sources to inspect it here.', 'p', 'notice warning'));
+        const manage = document.createElement('button');
+        manage.type = 'button';
+        manage.textContent = 'Update image access';
+        manage.addEventListener('click', () => { void navigate('sources'); });
+        box.append(manage);
+        return box;
+    }
     const preview = await getImageUrl(a);
     box.append(AnnotationDesk({ asset: a, regions: bundle.regions, imageUrl: preview, itemId: item?.id, onChange: r => { void save(b => { b.regions.push(r); const target = b.items.find(x => x.id === r.itemId); if (target)
             target.regionIds.push(r.id); return validateCaseBundle(b); }); } }));
-    if (bundle.assets.length > 1)
-        box.append(label('Only the first imported image is selected in this K1 inspector. Additional images remain in the case record.', 'p', 'notice warning'));
     return box;
 }
 async function render() {
@@ -113,7 +138,21 @@ async function render() {
     root.append(sub);
     const b = active;
     if (view === 'sources')
-        root.append(SourceIntake({ bundle: b, onSource: s => save(x => addSource(x, s)), onWitness: w => save(x => addWitness(x, w)), onRaster: async (file, rights) => { const { asset, media } = await prepareRaster(file, rights); asset.displayId = nextDisplayId(b, 'IMG'); const url = URL.createObjectURL(file); objectUrls.set(asset.sha256, url); await save(x => { x.assets.push(asset); const itemId = newEntityId(); x.items.push({ id: itemId, displayId: nextDisplayId(x, 'ITEM'), label: 'Mark in ' + file.name, assetId: asset.id, regionIds: [] }); return validateCaseBundle(x); }, media ? [media] : []); } }));
+        root.append(SourceIntake({ bundle: b, onSource: s => save(x => addSource(x, s)), onWitness: w => save(x => addWitness(x, w)), onViewRights: (assetId, view, reason) => save(x => changeImageViewRight(x, assetId, view, reason)).then(() => { if (view !== 'ALLOW') {
+                const asset = active?.assets.find(x => x.id === assetId);
+                if (asset) {
+                    const url = objectUrls.get(asset.sha256);
+                    if (url) {
+                        URL.revokeObjectURL(url);
+                        objectUrls.delete(asset.sha256);
+                    }
+                }
+            } }), onRaster: async (file, rights) => { const { asset, media } = await prepareRaster(file, rights); asset.displayId = nextDisplayId(b, 'IMG'); await save(x => { x.assets.push(asset); const itemId = newEntityId(); x.items.push({ id: itemId, displayId: nextDisplayId(x, 'ITEM'), label: 'Mark in ' + file.name, assetId: asset.id, regionIds: [] }); return validateCaseBundle(x); }, media ? [media] : []); selectedImageId = asset.id; if (canUseAsset(rights, 'VIEW').allowed) {
+                const previous = objectUrls.get(asset.sha256);
+                if (previous)
+                    URL.revokeObjectURL(previous);
+                objectUrls.set(asset.sha256, URL.createObjectURL(file));
+            } } }));
     else if (view === 'claims')
         root.append(ClaimLedger({ bundle: b, onItem: name => save(x => { x.items.push({ id: newEntityId(), displayId: nextDisplayId(x, 'ITEM'), label: name, regionIds: [] }); return validateCaseBundle(x); }), onClaim: v => save(x => addClaim(x, v)), onLink: l => save(x => attachEvidence(x, l)), onReading: r => save(x => addReadingAlternative(x, r)), onSearch: s => save(x => addSearchReceipt(x, s)) }));
     else if (view === 'annotations')

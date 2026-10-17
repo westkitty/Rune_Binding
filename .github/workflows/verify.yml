@@ -1,0 +1,28 @@
+name: Verify Rune Binding
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned TypeScript compiler
+        run: npm install --global typescript@5.8.3
+      - name: Typecheck and complete test suite
+        env:
+          CHROME_BIN: google-chrome
+        run: npm test
+      - name: Upload tested offline app
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rune-binding-site
+          path: dist/
+          if-no-files-found: warn

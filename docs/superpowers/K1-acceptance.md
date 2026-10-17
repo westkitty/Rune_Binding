@@ -51,3 +51,15 @@ P0 registry IDs from v3 are preserved. These are status classifications, not a r
 ## Remaining decisive validation
 
 Run `npm test` and inspect explicit SKIP count; then, on an unrestricted browser and real device, run the automated Chrome journey to verify case creation, image intake, annotation, source and claim entry, human review, three-file export, import conflict detection, persistence over reload, mobile layout and offline reopen. Measure the planned 10k IndexedDB p95 lookup rather than substituting Node Map timing.
+
+## 2026-10-17 evidence-safety and usability uplift
+
+These follow-up changes are code-level proven but **not** a replacement for the blocked real-device checks:
+
+- Local preview cache no longer permits viewing an asset whose `view` right is `DENY` or `UNKNOWN`; first-time reads verify stored media digests. An explicit viewing-right amendment UI preserves other rights, records an editor-supplied basis, and invalidates affected reviewed claims.
+- Annotation image selection now reaches all imported images rather than only the first; associated item selection is tested independently.
+- A deterministic, dependency-free ZIP/STORE package includes the three casefile records plus only the media the original compiler authorized; the archive reader checks names, bounds, CRCs and duplicate paths before handing data to the SHA-256 manifest verifier.
+- One ZIP file can be downloaded and imported as a casefile; the original individual-file export/import remains available. The archive has a 128 MiB guard and labels incomplete exports.
+- A public-repository publisher shell script and a GitHub verification workflow are included, but neither remote creation nor remote CI has been confirmed by file presence.
+
+**Release gate:** K1 remains `PARTIAL` for unverified actual browser IndexedDB restart, touch annotation, responsive layout, and offline SW reload. Local and remote Git state must be reported separately.

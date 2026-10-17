@@ -27,13 +27,13 @@ The source project intentionally uses no runtime npm packages. `npm run build` i
 
 1. Create a local **case** from the case shelf.
 2. Record a **source publication**, an underlying **witness** if known, and optionally upload an original PNG/JPEG/WebP with explicitly selected rights.
-3. Inspect or mark an **image region** (mouse, touch, or normalized numeric coordinates). A region is an observation, not a translation.
+3. Select any imported image and inspect or mark an **image region** (mouse, touch, or normalized numeric coordinates). A region is an observation, not a translation. If local viewing rights were left unknown, explicitly update them on the Sources tab; this does not grant redistribution rights.
 4. Enter an **atomic claim**, separately typed as `FORM`, `READING`, `NAME`, `MEANING`, `DATE`, `PURPOSE`, or `TRANSMISSION`.
 5. Connect sources to claims with exact locators and supporting, refuting, or contextual relationships. Unknown witness independence must remain unresolved.
 6. Open **Evidence review**. Structural warnings identify limitations. Only an identified human editor can append a verdict with a rationale, which is recorded in an append-only review history.
-7. Export the **casefile** as individually downloadable `casefile.md`, `casefile.json`, `manifest.json` and permitted media. An import preview checks digests and identity and refuses silently overwriting different cases.
+7. Export a **single ZIP backup** containing `casefile.md`, `casefile.json`, `manifest.json` and permitted media, or download each file separately. The ZIP can be re-imported in one operation. An import preview checks digests and identity and refuses to silently overwrite different cases. Restricted and missing media are listed as omissions; an incomplete archive is not a full backup.
 
-**Image/export rights are not inferred from public visibility.** Rights for viewing, local copying, metadata, embedding and redistribution are tracked separately. Unknown rights deny restricted operations by default.
+**Image/export rights are not inferred from public visibility.** Rights for viewing, local copying, metadata, embedding and redistribution are tracked separately. Unknown rights deny restricted operations by default. Public image redistribution requires a written rights basis. An image-view permission change preserves earlier basis text and triggers re-review of affected editorial claims.
 
 ## Scope and caution
 
@@ -48,11 +48,21 @@ The three governing specifications are preserved in `docs/` with the exact SHA-2
 
 See `OPERATIONAL_STATE.md` for verified project status and remaining browser validation requirements, and `tests/perf/results/node-proxy-latest.json` for the actual **Node proxy**, not browser, benchmark receipt.
 
+## Public GitHub publication
+
+The repository is ready to publish to the explicit public target `westkitty/Rune_Binding`. From a clean local `main` checkout with an authenticated GitHub CLI, run:
+
+```bash
+sh scripts/publish-public.sh
+```
+
+The script refuses a dirty tree, unexpected remote, unauthenticated GitHub CLI, or a private destination. It creates the public repository if authorized, pushes without rewriting history, and compares remote and local commit SHAs before claiming success. A GitHub Actions workflow runs the test suite against Node 22 and a pinned TypeScript compiler. The workflow and remote build are **unverified until the repository exists and Actions actually runs**.
+
 ## Development and quality
 
 - `npm run typecheck` checks strict TypeScript interfaces.
 - `npm run test:unit` runs domain, storage, rights, review, and export tests.
-- `npm run test:e2e` runs static integration checks and attempts two real Chromium journeys. Managed policy restrictions produce **explicit SKIP**, not PASS.
+- `npm run test:e2e` runs static integration checks and attempts two real Chromium journeys. Managed policy restrictions produce **explicit SKIP**, not PASS. The mobile and browser-persistence release gate remains open.
 - `npm run test:perf` exercises 10,000 synthetic Map entries and 100-claim deterministic casefile generation. These are Node proxy measurements, not IndexedDB browser results.
 
 ## Privacy

@@ -3,7 +3,7 @@ function field(selector, root) { const el = root.querySelector(selector); if (!e
     throw Error('Missing form field ' + selector); return el; }
 function status(root, message) { const p = root.querySelector('[role="status"]'); if (p)
     p.textContent = message; }
-export function SourceIntake({ bundle, onSource, onWitness, onRaster }) {
+export function SourceIntake({ bundle, onSource, onWitness, onRaster, onViewRights }) {
     const section = document.createElement('section');
     section.className = 'panel-grid';
     section.setAttribute('aria-label', 'Source and witness intake');
@@ -57,6 +57,29 @@ export function SourceIntake({ bundle, onSource, onWitness, onRaster }) {
         status(image, String(err));
     } });
     section.append(source, witness, image);
+    if (bundle.assets.length) {
+        const access = document.createElement('form');
+        access.className = 'pane span-all';
+        access.innerHTML = '<h3>Change local viewing</h3><p class="caption">For already imported images, you can authorize or restrict viewing on this device. This is your explicit local inspection decision, not a copyright license or permission to redistribute.</p><label>Image<select name="assetId" required></select></label><label>Local inspection permission<select name="view"><option value="UNKNOWN">Unknown / not granted</option><option value="ALLOW">Allow local viewing</option><option value="DENY">Deny local viewing</option></select></label><label>Reason for this decision<input name="reason" maxlength="1000" required placeholder="e.g. I authorize inspection of my own photograph"></label><button type="submit">Save local viewing decision</button><p role="status" class="form-status"></p>';
+        const options = field('[name="assetId"]', access), decision = field('[name="view"]', access);
+        for (const asset of bundle.assets) {
+            const opt = document.createElement('option');
+            opt.value = asset.id;
+            opt.textContent = asset.displayId + ' · ' + asset.filename;
+            options.append(opt);
+        }
+        const sync = () => { decision.value = bundle.assets.find(a => a.id === options.value)?.rights.view ?? 'UNKNOWN'; };
+        options.addEventListener('change', sync);
+        sync();
+        access.addEventListener('submit', async (e) => { e.preventDefault(); const d = new FormData(access); try {
+            await onViewRights(String(d.get('assetId') || ''), String(d.get('view') || 'UNKNOWN'), String(d.get('reason') || ''));
+            access.reset();
+        }
+        catch (err) {
+            status(access, String(err));
+        } });
+        section.append(access);
+    }
     const listing = document.createElement('div');
     listing.className = 'pane span-all';
     const h = document.createElement('h3');

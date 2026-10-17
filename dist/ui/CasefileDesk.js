@@ -1,6 +1,8 @@
 import { compileCasefile } from '../export/casefile.js';
 import { parseCasefileImport } from '../export/import-casefile.js';
-export function downloadMime(name) { if (name.endsWith('.png'))
+import { packCasefileArchive, unpackCasefileArchive } from '../export/archive.js';
+export function downloadMime(name) { if (name.endsWith('.zip'))
+    return 'application/zip'; if (name.endsWith('.png'))
     return 'image/png'; if (name.endsWith('.jpg') || name.endsWith('.jpeg'))
     return 'image/jpeg'; if (name.endsWith('.webp'))
     return 'image/webp'; if (name.endsWith('.json'))
@@ -25,71 +27,106 @@ export function CasefileDesk({ bundle, getMedia, onImport }) {
     const preview = document.createElement('pre');
     preview.className = 'export-preview';
     right.append(title, description, output, preview);
-    left.addEventListener('submit', async (e) => { e.preventDefault(); const d = new FormData(left); const mode = String(d.get('mode')); const includeMedia = d.has('includeMedia'); const available = new Map(); try {
-        if (includeMedia)
-            for (const a of bundle.assets) {
-                const b = await getMedia(a.sha256);
-                if (b)
-                    available.set(a.sha256, b);
-            }
-        const compiled = await compileCasefile(bundle, available, { mode, includeMedia, allowIncomplete: d.has('allowIncomplete'), frozenRevision: bundle.case.revision });
-        output.replaceChildren();
-        const p = left.querySelector('[role="status"]');
-        p.textContent = compiled.complete ? 'Compiled without omissions.' : 'Export incomplete: ' + compiled.omissions.join('; ');
-        preview.textContent = new TextDecoder().decode(compiled.files['casefile.md']).slice(0, 15000);
-        for (const [name, bytes] of Object.entries(compiled.files).sort(([a], [b]) => a.localeCompare(b))) {
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.textContent = 'Download ' + name + ' (' + bytes.length.toLocaleString() + ' bytes)';
-            b.addEventListener('click', () => download(name, bytes));
-            output.append(b);
-        }
-    }
-    catch (err) {
-        left.querySelector('[role="status"]').textContent = String(err);
-    } });
-    root.append(left, right);
-    const restore = document.createElement('form');
-    restore.className = 'pane span-all';
-    restore.innerHTML = '<h3>Restore or inspect an exported case</h3><p class="caption">Select casefile.json and manifest.json. If image files were included, select those as well. Inspect the result before importing.</p><div class="two"><label>Evidence JSON<input name="casefile" type="file" required accept=".json,application/json"></label><label>Manifest JSON<input name="manifest" type="file" required accept=".json,application/json"></label></div><label>Exported image files (optional)<input name="media" type="file" multiple></label><button type="submit">Verify import</button><p role="status" class="form-status"></p><div class="import-preview"></div>';
-    restore.addEventListener('submit', async (e) => {
+    left.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const el = restore.elements;
-        const file = el['casefile']?.files?.[0], man = el['manifest']?.files?.[0];
-        if (!file || !man)
-            return;
-        const media = new Map();
+        const d = new FormData(left);
+        const mode = String(d.get('mode'));
+        const includeMedia = d.has('includeMedia');
+        const available = new Map();
         try {
-            const files = el['media']?.files;
-            for (const f of Array.from(files || [])) {
-                if (f.size > 20 * 1024 * 1024)
-                    throw Error('Media file too large');
-                media.set('media/' + f.name, new Uint8Array(await f.arrayBuffer()));
+            if (includeMedia)
+                for (const a of bundle.assets) {
+                    const b = await getMedia(a.sha256);
+                    if (b)
+                        available.set(a.sha256, b);
+                }
+            const compiled = await compileCasefile(bundle, available, { mode, includeMedia, allowIncomplete: d.has('allowIncomplete'), frozenRevision: bundle.case.revision });
+            output.replaceChildren();
+            const p = left.querySelector('[role="status"]');
+            p.textContent = compiled.complete ? 'Compiled without omissions.' : 'Export incomplete: ' + compiled.omissions.join('; ');
+            preview.textContent = new TextDecoder().decode(compiled.files['casefile.md']).slice(0, 15000);
+            const archive = document.createElement('button');
+            archive.type = 'button';
+            archive.textContent = 'Download ZIP backup' + (compiled.complete ? '' : ' (incomplete)');
+            archive.addEventListener('click', () => { try {
+                download('rune-binding-casefile.zip', packCasefileArchive(compiled.files));
             }
-            const result = await parseCasefileImport(new Uint8Array(await file.arrayBuffer()), new Uint8Array(await man.arrayBuffer()), media);
-            const detail = restore.querySelector('.import-preview');
-            detail.replaceChildren();
-            const note = document.createElement('p');
-            note.textContent = `Case: ${result.bundle.case.title} — Revision ${result.bundle.case.revision}; ${result.complete ? 'complete permitted data' : 'INCOMPLETE / missing media or rights omissions'}. Missing media: ${result.missingMedia.length}; recorded omissions: ${result.redactedFields.length}.`;
-            detail.append(note);
-            for (const choice of ['REVIEW_CONFLICTS', 'CREATE_NEW', 'MERGE_IDENTICAL']) {
+            catch (error) {
+                p.textContent = 'ZIP export blocked: ' + String(error);
+            } });
+            output.append(archive);
+            for (const [name, bytes] of Object.entries(compiled.files).sort(([a], [b]) => a.localeCompare(b))) {
                 const b = document.createElement('button');
                 b.type = 'button';
-                b.textContent = choice === 'CREATE_NEW' ? 'Import as new case' : choice === 'MERGE_IDENTICAL' ? 'Accept identical local case' : 'Preview conflicts only';
-                b.addEventListener('click', async () => { try {
-                    const response = await onImport(result, choice);
-                    restore.querySelector('[role="status"]').textContent = response.status + ': ' + response.message;
-                }
-                catch (err) {
-                    restore.querySelector('[role="status"]').textContent = String(err);
-                } });
-                detail.append(b);
+                b.textContent = 'Download ' + name + ' (' + bytes.length.toLocaleString() + ' bytes)';
+                b.addEventListener('click', () => download(name, bytes));
+                output.append(b);
             }
         }
         catch (err) {
-            restore.querySelector('[role="status"]').textContent = 'Import blocked: ' + String(err);
+            left.querySelector('[role="status"]').textContent = String(err);
         }
     });
+    root.append(left, right);
+    // Both import paths share the same integrity verifier and conflict-safe import preview.
+    async function showImportResult(form, result) {
+        const detail = form.querySelector('.import-preview');
+        detail.replaceChildren();
+        const note = document.createElement('p');
+        note.textContent = `Case: ${result.bundle.case.title} — Revision ${result.bundle.case.revision}; ${result.complete ? 'complete permitted data' : 'INCOMPLETE / missing media or rights omissions'}. Missing media: ${result.missingMedia.length}; recorded omissions: ${result.redactedFields.length}.`;
+        detail.append(note);
+        for (const choice of ['REVIEW_CONFLICTS', 'CREATE_NEW', 'MERGE_IDENTICAL']) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = choice === 'CREATE_NEW' ? 'Import as new case' : choice === 'MERGE_IDENTICAL' ? 'Accept identical local case' : 'Preview conflicts only';
+            b.addEventListener('click', async () => { try {
+                const response = await onImport(result, choice);
+                form.querySelector('[role="status"]').textContent = response.status + ': ' + response.message;
+            }
+            catch (err) {
+                form.querySelector('[role="status"]').textContent = String(err);
+            } });
+            detail.append(b);
+        }
+    }
+    const zipRestore = document.createElement('form');
+    zipRestore.className = 'pane span-all';
+    zipRestore.innerHTML = '<h3>Restore from ZIP backup</h3><p class="caption">One file contains casefile.json, casefile.md, the integrity manifest and any permitted image bytes. ZIP contents are checked before local import.</p><label>Case archive (.zip)<input name="archive" type="file" accept=".zip,application/zip" required></label><button type="submit">Verify ZIP backup</button><p role="status" class="form-status"></p><div class="import-preview"></div>';
+    zipRestore.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = zipRestore.querySelector('[name="archive"]')?.files?.[0];
+        if (!file)
+            return;
+        try {
+            if (file.size > 128 * 1024 * 1024)
+                throw Error('ZIP exceeds 128 MiB limit');
+            const files = unpackCasefileArchive(new Uint8Array(await file.arrayBuffer()));
+            const media = new Map(Object.entries(files).filter(([name]) => name.startsWith('media/')));
+            const parsed = await parseCasefileImport(files['casefile.json'], files['manifest.json'], media);
+            await showImportResult(zipRestore, parsed);
+        }
+        catch (err) {
+            zipRestore.querySelector('[role="status"]').textContent = 'ZIP import blocked: ' + String(err);
+        }
+    });
+    root.append(zipRestore);
+    const restore = document.createElement('form');
+    restore.className = 'pane span-all';
+    restore.innerHTML = '<h3>Restore individual casefile files</h3><p class="caption">Select casefile.json and manifest.json. If image files were included, select those as well. Inspect the result before importing.</p><div class="two"><label>Evidence JSON<input name="casefile" type="file" required accept=".json,application/json"></label><label>Manifest JSON<input name="manifest" type="file" required accept=".json,application/json"></label></div><label>Exported image files (optional)<input name="media" type="file" multiple></label><button type="submit">Verify individual files</button><p role="status" class="form-status"></p><div class="import-preview"></div>';
+    restore.addEventListener('submit', async (e) => { e.preventDefault(); const el = restore.elements; const file = el['casefile']?.files?.[0], man = el['manifest']?.files?.[0]; if (!file || !man)
+        return; const media = new Map(); try {
+        const files = el['media']?.files;
+        for (const f of Array.from(files || [])) {
+            if (f.size > 20 * 1024 * 1024)
+                throw Error('Media file too large');
+            media.set('media/' + f.name, new Uint8Array(await f.arrayBuffer()));
+        }
+        const parsed = await parseCasefileImport(new Uint8Array(await file.arrayBuffer()), new Uint8Array(await man.arrayBuffer()), media);
+        await showImportResult(restore, parsed);
+    }
+    catch (err) {
+        restore.querySelector('[role="status"]').textContent = 'Import blocked: ' + String(err);
+    } });
     root.append(restore);
     return root;
 }
