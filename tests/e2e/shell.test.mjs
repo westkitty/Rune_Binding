@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 test('opens_case_shelf', async () => {
   const html = await readFile(new URL('../../dist/index.html', import.meta.url), 'utf8');
   assert.match(html, /Rune Binding/);
-  assert.match(html, /Create case/);
-  assert.match(html, /Local-only/);
+  assert.match(html, /What does this rune really mean/);
+  assert.match(html, /Private by design/);
   assert.doesNotMatch(html, /ancient origin verified/i);
 });

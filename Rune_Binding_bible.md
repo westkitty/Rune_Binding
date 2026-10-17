@@ -33,3 +33,12 @@ This is an additive project record. It does not override the approved design, de
 - Live site `https://westkitty.github.io/Rune_Binding/` and its JavaScript, CSS, manifest and service-worker assets each returned HTTP 200 in a direct network smoke test.
 - Local MacBook Chrome full suite: 75 unit/integration + 7 E2E including two true browser tests + 3 perf proxy = 85 passed, 0 failed, 0 skipped. These checks do not prove offline network-disconnect behavior, tablet touch drawing, complete keyboard accessibility, or historical source accuracy.
 - Release state must be anchored to GitHub Pages deployment status and live HTTP readback; updating `main` alone is insufficient proof of a deployed site.
+
+## 2026-10-17 — Beginner-first Evidence Atlas interface
+
+- User-observed problem: first public K1 was overly data-intensive and did not clearly explain its purpose. The primary goal is now to let a first-time visitor understand the evidence workflow and start without entering a historical dossier.
+- Home presents a prominent question about rune meanings, one-image import, zero-input sample with explicitly unverified illustration, a one-click blank-study route, and a clear observe → claim → verify sequence.
+- New private-image consent is strictly scoped to locally viewing/storing a user-selected image; the upload must not imply permission to redistribute. An event-in-progress guard prevents duplicate case creation from rapid repeat file-change events.
+- Expert source, witness, image-rights, claim-date and citation controls remain accessible under progressive disclosure. Historicity, transcription and magical function remain independent unverified statements until supported and editorially reviewed.
+- Verified MacBook Chrome: 89 tests passed with no skips, including real 390px mobile, 1440px desktop visual evidence, case restore, optional sample and image-first journey. Real-device gesture and offline disconnect were not checked.
+- Release rule: do not call the redesigned site live until the commit-matched Pages deployment succeeds and key URLs respond successfully.

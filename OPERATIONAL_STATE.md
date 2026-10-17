@@ -3,7 +3,7 @@
 **Project ID:** `rune-binding-k1`
 **Current focus:** Rune Binding K1 Evidence Kernel, no-account local-first workbench
 **Updated:** 2026-10-17
-**Status:** Public GitHub main and Pages deployment verified; 85/85 MacBook Chrome tests pass with zero skips. Offline network-disconnect and real-device touch acceptance remain pending.
+**Status:** Public GitHub main and Pages deployment verified; 89/89 MacBook Chrome tests pass with zero skips; beginner-first redesign implemented locally, publication confirmation pending. Offline network-disconnect and real-device touch acceptance remain pending.
 
 ## Source of truth
 
@@ -30,6 +30,10 @@ Typed graphic observation, text reading, language/name, semantic meaning, date, 
 - GitHub public repository `https://github.com/westkitty/Rune_Binding` main commit `d826abc577cf9e477d8abdf0348bfdf5f0dcc1c0` was pushed and independently matched against the remote ref.
 - GitHub verification run `39016279168` passed; GitHub Pages build+deploy run `39016342453` passed.
 - Pages `https://westkitty.github.io/Rune_Binding/` uses GitHub Actions workflow source with HTTPS enforced; root, JS, CSS, PWA manifest and service worker each returned HTTP 200.
+
+- First-run redesign: interactive illustrative rune inspector needs no account or case; single-click blank studies pre-create an item; selecting an image imports and opens annotation without demanding a title or source metadata. A one-click private local rights basis never grants public image redistribution.
+- Researcher-only source, witness, dating, rights, and citation fields remain available behind explicit expandable sections. Browser tests verify illustrative sample switch, single-image import despite duplicate change events, persistent case recovery, legacy full evidence journey and mobile no-overflow.
+- MacBook Chrome ran 77 unit/integration checks + 9 E2E checks (including 4 real browser cases) + 3 Node proxy performance tests: 89 passed, 0 failed, 0 skipped. Screenshot review inspected a 1440 px desktop layout and 390 px mobile layout. Visual inspection does not prove every interaction or device size.
 
 ## Unverified or blocked
 

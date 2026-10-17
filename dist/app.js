@@ -3,6 +3,7 @@ import { newEntityId, nextDisplayId } from './domain/ids.js';
 import { addSource, addWitness, addClaim, addReadingAlternative, attachEvidence, addSearchReceipt } from './domain/case-actions.js';
 import { reviewClaim } from './domain/review.js';
 import { prepareRaster } from './intake/raster.js';
+import { localImageConsent, studyTitleFromImage } from './domain/quick-start.js';
 import { openCaseRepository } from './storage/indexeddb-repository.js';
 import { MemoryCaseRepository } from './storage/case-repository.js';
 import { applyCasefileImport } from './export/import-casefile.js';
@@ -39,6 +40,8 @@ catch {
     notice = 'Persistent storage API unavailable. Export casefiles for backup.';
 } await render(); }
 async function navigate(page) { view = page; await render(); }
+async function quickStart() { const b = createBlankCase('Untitled symbol study'); const itemId = newEntityId(); b.items.push({ id: itemId, displayId: nextDisplayId(b, 'ITEM'), label: 'Symbol to investigate', regionIds: [] }); await repo.createCase(b); active = b; selectedImageId = null; view = 'claims'; notice = 'Your study is ready. Write what you want to check; you can add sources later.'; await render(); }
+async function quickImage(file) { const rights = localImageConsent(); const { asset, media } = await prepareRaster(file, rights); const base = createBlankCase(studyTitleFromImage(file.name)); asset.displayId = nextDisplayId(base, 'IMG'); const id = newEntityId(); base.assets.push(asset); base.items.push({ id, displayId: nextDisplayId(base, 'ITEM'), label: 'Symbol in ' + file.name.slice(0, 110), assetId: asset.id, regionIds: [] }); await repo.createCase(validateCaseBundle(base), media ? [media] : []); active = base; selectedImageId = asset.id; objectUrls.set(asset.sha256, URL.createObjectURL(file)); view = 'annotations'; notice = 'Image ready. Draw a box around the symbol, or skip ahead to record what people say it means.'; await render(); }
 async function createCase(title) { const b = createBlankCase(title); await repo.createCase(b); active = b; selectedImageId = null; view = 'claims'; notice = 'Case created locally. Start by recording a source or item.'; await render(); }
 async function openCase(id) { const b = await repo.getCase(id); if (!b)
     throw Error('Case not found'); active = b; selectedImageId = null; view = 'claims'; notice = 'Opened case ' + b.case.title; await render(); }
@@ -80,7 +83,7 @@ async function annotationPanel(bundle) {
     const box = document.createElement('div');
     box.className = 'annotation-layout';
     const h = label('Inspect the original image', 'h2');
-    const p = label('Regions use original-image coordinates, not window pixels. You can draw or enter X / Y / width / height by keyboard.', 'p');
+    const p = label('Draw a box around the rune to mark it. You can skip this and record a claim first.', 'p');
     box.append(h, p);
     if (!bundle.assets.length) {
         box.append(label('Import a raster image on the Sources tab.', 'p', 'notice'));
@@ -117,19 +120,26 @@ async function annotationPanel(bundle) {
     const preview = await getImageUrl(a);
     box.append(AnnotationDesk({ asset: a, regions: bundle.regions, imageUrl: preview, itemId: item?.id, onChange: r => { void save(b => { b.regions.push(r); const target = b.items.find(x => x.id === r.itemId); if (target)
             target.regionIds.push(r.id); return validateCaseBundle(b); }); } }));
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'journey-next';
+    next.textContent = 'Next: record a claim  →';
+    next.addEventListener('click', () => { void navigate('claims'); });
+    box.append(next);
     return box;
 }
 async function render() {
     await refreshHealth();
     root.replaceChildren();
-    root.append(nav());
+    if (active && view !== 'shelf')
+        root.append(nav());
     if (notice) {
         const bar = label(notice, 'p', 'live-notice');
         bar.setAttribute('role', 'status');
         root.append(bar);
     }
     if (!active || view === 'shelf') {
-        root.append(CaseShelf({ cases: await cases(), active, health, onCreate: createCase, onOpen: openCase, onPersist: persistStorage }));
+        root.append(CaseShelf({ cases: await cases(), active, health, onCreate: createCase, onOpen: openCase, onPersist: persistStorage, onQuickImage: quickImage, onQuickStart: quickStart }));
         return;
     }
     const sub = document.createElement('div');
@@ -152,6 +162,9 @@ async function render() {
                 if (previous)
                     URL.revokeObjectURL(previous);
                 objectUrls.set(asset.sha256, URL.createObjectURL(file));
+                view = 'annotations';
+                notice = 'Image added. Mark the symbol, or continue to Claims.';
+                await render();
             } } }));
     else if (view === 'claims')
         root.append(ClaimLedger({ bundle: b, onItem: name => save(x => { x.items.push({ id: newEntityId(), displayId: nextDisplayId(x, 'ITEM'), label: name, regionIds: [] }); return validateCaseBundle(x); }), onClaim: v => save(x => addClaim(x, v)), onLink: l => save(x => attachEvidence(x, l)), onReading: r => save(x => addReadingAlternative(x, r)), onSearch: s => save(x => addSearchReceipt(x, s)) }));

@@ -1,8 +1,14 @@
 # Rune Binding
 
-A local-first evidence workbench for investigating rune and bind-rune images, historical claims, textual readings, and their documentary witnesses. This application does **not** assign ancient origins, meanings, dates, or magical purposes automatically.
+**What does that rune really mean?** Rune Binding lets you start with a picture or an example, record what somebody claims about a symbol, and investigate what historical evidence actually supports. No login, no required case title, and no need to learn research terminology to begin. Images and case records stay on your device. The tool does **not** automatically verify a rune, invent meanings, or identify an ancient source.
 
-## Try it
+## Open the app
+
+**[Explore Rune Binding online](https://westkitty.github.io/Rune_Binding/)**
+
+You can try three rune examples instantly, choose an image to open a private investigation, or begin a blank study without naming it. Detailed source, date and permissions fields are tucked away until needed.
+
+## Run it locally
 
 **Without installing a JavaScript toolchain:** serve the committed `dist/` directory over a local HTTP origin. For example, with Python 3:
 
@@ -23,15 +29,14 @@ npm run dev
 
 The source project intentionally uses no runtime npm packages. `npm run build` invokes globally available `tsc` and then copies static assets to `dist/`. If `tsc` is missing, install the TypeScript compiler compatible with your environment before building. A local runtime HTTP server is still required to test the built frontend reliably.
 
-## One complete research journey
+## A simple research journey
 
-1. Create a local **case** from the case shelf.
-2. Record a **source publication**, an underlying **witness** if known, and optionally upload an original PNG/JPEG/WebP with explicitly selected rights.
-3. Select any imported image and inspect or mark an **image region** (mouse, touch, or normalized numeric coordinates). A region is an observation, not a translation. If local viewing rights were left unknown, explicitly update them on the Sources tab; this does not grant redistribution rights.
-4. Enter an **atomic claim**, separately typed as `FORM`, `READING`, `NAME`, `MEANING`, `DATE`, `PURPOSE`, or `TRANSMISSION`.
-5. Connect sources to claims with exact locators and supporting, refuting, or contextual relationships. Unknown witness independence must remain unresolved.
-6. Open **Evidence review**. Structural warnings identify limitations. Only an identified human editor can append a verdict with a rationale, which is recorded in an append-only review history.
-7. Export a **single ZIP backup** containing `casefile.md`, `casefile.json`, `manifest.json` and permitted media, or download each file separately. The ZIP can be re-imported in one operation. An import preview checks digests and identity and refuses to silently overwrite different cases. Restricted and missing media are listed as omissions; an incomplete archive is not a full backup.
+1. **Start immediately.** Click **Try a sample** to see the difference between an observed shape, a popular interpretation, and examined evidence. The demo does not create or alter a case.
+2. **Add a symbol.** Choose **Explore my symbol** and select a PNG/JPEG/WebP. It creates a local study with a useful title automatically, records permission for *private on-device viewing and storage only*, and opens image annotation. Neither reuse nor public redistribution is granted.
+3. **Record what is claimed.** Mark a region if useful, then write a claim in plain language. Unknown dates, script classifications and citation details may be left out. All claims begin **UNVERIFIED**.
+4. **Investigate and preserve findings.** Add source publications, physical witnesses, exact locators and alternative readings when available. Human editorial review is explicit and append-only. Save a ZIP backup or restore a prior case. An incomplete backup never masquerades as complete.
+
+The full evidence system remains available in the Research workspace; beginner shortcuts cannot infer a historical verdict or relax source and image rights checks.
 
 **Image/export rights are not inferred from public visibility.** Rights for viewing, local copying, metadata, embedding and redistribution are tracked separately. Unknown rights deny restricted operations by default. Public image redistribution requires a written rights basis. An image-view permission change preserves earlier basis text and triggers re-review of affected editorial claims.
 
@@ -60,7 +65,7 @@ See `OPERATIONAL_STATE.md` for verified project status and remaining browser val
 
 - `npm run typecheck` checks strict TypeScript interfaces.
 - `npm run test:unit` runs domain, storage, rights, review, and export tests.
-- `npm run test:e2e` runs static integration checks and attempts two real Chromium journeys. Managed policy restrictions produce **explicit SKIP**, not PASS. The mobile and browser-persistence release gate remains open.
+- `npm run test:e2e` runs static checks and four Chromium journeys: research/reload persistence, mobile viewport, zero-input sample/blank study, and image-first upload/reload. Managed browsers that block localhost produce explicit SKIP, not PASS. The authorized MacBook Chrome run passed all four; real-device touch and disconnected-network operation remain separate acceptance gates.
 - `npm run test:perf` exercises 10,000 synthetic Map entries and 100-claim deterministic casefile generation. These are Node proxy measurements, not IndexedDB browser results.
 
 ## Privacy

@@ -1,4 +1,5 @@
 import { emptyRights } from '../domain/rights.js';
+import { localImageConsent } from '../domain/quick-start.js';
 function field(selector, root) { const el = root.querySelector(selector); if (!el)
     throw Error('Missing form field ' + selector); return el; }
 function status(root, message) { const p = root.querySelector('[role="status"]'); if (p)
@@ -56,7 +57,28 @@ export function SourceIntake({ bundle, onSource, onWitness, onRaster, onViewRigh
     catch (err) {
         status(image, String(err));
     } });
-    section.append(source, witness, image);
+    const quick = document.createElement('section');
+    quick.className = 'pane span-all simple-intake';
+    quick.innerHTML = '<p class="eyebrow">START HERE</p><h2>Show us the symbol.</h2><p>Add a photo or screenshot. You can mark the interesting part and come back for detailed source records later.</p><label>Choose your image<input name="quick-image" type="file" accept="image/png,image/jpeg,image/webp"></label><p class="caption">Selecting an image authorizes private on-device viewing and storage only. It does not authorize redistribution.</p><p role="status" class="form-status"></p>';
+    const quickFile = field('[name="quick-image"]', quick);
+    quickFile.addEventListener('change', async () => { const file = quickFile.files?.[0]; if (!file)
+        return; quickFile.disabled = true; status(quick, 'Checking image…'); try {
+        await onRaster(file, localImageConsent());
+    }
+    catch (error) {
+        status(quick, String(error));
+    }
+    finally {
+        quickFile.disabled = false;
+        quickFile.value = '';
+    } });
+    section.append(quick);
+    const advanced = document.createElement('details');
+    advanced.className = 'span-all advanced-evidence';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Detailed research: sources, physical witnesses, and image rights';
+    advanced.append(summary, source, witness, image);
+    section.append(advanced);
     if (bundle.assets.length) {
         const access = document.createElement('form');
         access.className = 'pane span-all';
@@ -78,7 +100,7 @@ export function SourceIntake({ bundle, onSource, onWitness, onRaster, onViewRigh
         catch (err) {
             status(access, String(err));
         } });
-        section.append(access);
+        advanced.append(access);
     }
     const listing = document.createElement('div');
     listing.className = 'pane span-all';

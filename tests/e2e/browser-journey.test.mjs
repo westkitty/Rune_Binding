@@ -22,7 +22,7 @@ async function launch(){
  let serial=1;const pending=new Map();ws.onmessage=event=>{const msg=JSON.parse(event.data);if(msg.id&&pending.has(msg.id)){const {resolve,reject}=pending.get(msg.id);pending.delete(msg.id);msg.error?reject(Error(msg.error.message)):resolve(msg.result)}};
  const cmd=(method,params={})=>new Promise((resolve,reject)=>{const id=serial++;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}))});
  const evalJs=async js=>{const r=await cmd('Runtime.evaluate',{expression:`(${js})`,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result?.value};
- const close=async()=>{try{ws.close()}catch{}try{chrome.kill('SIGTERM')}catch{}try{web.kill('SIGTERM')}catch{}await pause(160);await rm(dir,{recursive:true,force:true})};
+ const close=async()=>{try{ws.close()}catch{}try{chrome.kill('SIGTERM')}catch{}try{web.kill('SIGTERM')}catch{}await pause(450);await rm(dir,{recursive:true,force:true,maxRetries:8,retryDelay:170})};
  await cmd('Page.enable');await cmd('Runtime.enable');await cmd('Page.navigate',{url:`http://127.0.0.1:${webport}/`});
  return {cmd,evalJs,close,webport};
 }
@@ -59,4 +59,40 @@ test('browser_case_journey_and_restart_persists_human_review', {timeout:45000}, 
  }finally{await browser.close()}
 });
 
-test('mobile_has_no_horizontal_overflow', {timeout:30000},async(t)=>{const browser=await launch();try{await browser.cmd('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await browser.cmd('Page.reload',{ignoreCache:true});if(await policyBlocked(browser)){t.skip('Managed Chromium disallows localhost; mobile layout remains UNVERIFIED');return;}await waitFor(()=>browser.evalJs(`document.querySelector('.case-shelf')!==null`));const o=await browser.evalJs(`({actual:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})`);assert.ok(o.actual<=o.client+2,JSON.stringify(o))}finally{await browser.close()}});
+test('mobile_has_no_horizontal_overflow', {timeout:30000},async(t)=>{const browser=await launch();try{await browser.cmd('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await browser.cmd('Page.reload',{ignoreCache:true});if(await policyBlocked(browser)){t.skip('Managed Chromium disallows localhost; mobile layout remains UNVERIFIED');return;}await waitFor(()=>browser.evalJs(`document.querySelector('.case-shelf')!==null`));if(process.env.RUNE_CAPTURE_MOBILE){const shot=await browser.cmd('Page.captureScreenshot',{format:'png'});await writeFile(process.env.RUNE_CAPTURE_MOBILE,Buffer.from(shot.data,'base64'))}const o=await browser.evalJs(`({actual:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})`);assert.ok(o.actual<=o.client+2,JSON.stringify(o))}finally{await browser.close()}});
+
+
+test('first_visit_explains_the_app_and_sample_requires_no_case_or_fields',{timeout:30000},async t=>{
+ const browser=await launch();try{
+  if(await policyBlocked(browser)){t.skip('Managed Chromium blocks localhost');return}
+  await waitFor(()=>browser.evalJs(`document.querySelector('.atlas-headline')!==null`));
+  if(process.env.RUNE_CAPTURE_DESKTOP){await browser.cmd('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});const shot=await browser.cmd('Page.captureScreenshot',{format:'png'});await writeFile(process.env.RUNE_CAPTURE_DESKTOP,Buffer.from(shot.data,'base64'))}
+  const initial=await browser.evalJs(`({title:document.querySelector('.atlas-headline')?.textContent,action:document.querySelector('.atlas-primary')?.textContent,cases:document.querySelectorAll('.case-entry').length,forms:document.querySelectorAll('.case-shelf form').length})`);
+  assert.match(initial.title,/rune/i);assert.match(initial.action,/Explore my symbol/);assert.equal(initial.cases,0);
+  await browser.evalJs(`document.querySelectorAll('.rune-sample')[1].click()`);
+  assert.equal(await browser.evalJs(`document.querySelector('.demo-question')?.textContent`),'Where did that meaning come from?');
+  assert.equal(await browser.evalJs(`document.querySelectorAll('.case-entry').length`),0);
+  await browser.evalJs(`document.querySelector('.start-blank').click()`);
+  await waitFor(()=>browser.evalJs(`document.querySelector('.claim-intro')!==null`));
+  assert.equal(await browser.evalJs(`document.querySelectorAll('form [name=itemId] option').length`),1);
+  assert.equal(await browser.evalJs(`document.querySelector('.claim-more')?.open`),false);
+ }finally{await browser.close()}
+});
+
+test('image_first_path_creates_local_case_without_a_title_or_rights_question',{timeout:45000},async t=>{
+ const browser=await launch();const folder=await mkdtemp(join(tmpdir(),'rune-upload-'));const filename=join(folder,'unknown-mark.png');
+ try{
+  if(await policyBlocked(browser)){t.skip('Managed Chromium blocks localhost');return}
+  await waitFor(()=>browser.evalJs(`document.querySelector('#hero-image')!==null`));
+  await writeFile(filename,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGN8cqiJgYGBiYGBgYGBAQAabAIsoib3WAAAAABJRU5ErkJggg==','base64'));
+  await browser.cmd('DOM.enable');const documentRoot=await browser.cmd('DOM.getDocument');const selected=await browser.cmd('DOM.querySelector',{nodeId:documentRoot.root.nodeId,selector:'#hero-image'});
+  assert.ok(selected.nodeId);
+  await browser.cmd('DOM.setFileInputFiles',{files:[filename],nodeId:selected.nodeId});
+  await browser.evalJs(`document.querySelector('#hero-image').dispatchEvent(new Event('change',{bubbles:true}))`);
+  try{await waitFor(()=>browser.evalJs(`document.querySelector('.annotation-layout')!==null`))}catch(error){const details=await browser.evalJs(`({status:document.querySelector('.hero-upload-status')?.textContent,body:document.body.innerText.slice(-480)})`);throw Error('Image-first onboarding did not open annotation: '+JSON.stringify(details)+' / '+String(error))}
+  assert.equal(await browser.evalJs(`document.querySelector('.case-head h2')?.textContent`),'Study: unknown-mark');
+  assert.equal(await browser.evalJs(`document.querySelectorAll('.image-stage img').length`),1);
+  await browser.cmd('Page.reload',{ignoreCache:true});
+  await waitFor(()=>browser.evalJs(`document.querySelectorAll('.case-entry').length===1`));
+ }finally{await browser.close();await rm(folder,{recursive:true,force:true})}
+});
